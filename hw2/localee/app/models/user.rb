@@ -15,6 +15,9 @@ class User < ActiveRecord::Base
   ############################################
   #  TODO: you may optionally add code here  #
   ############################################
+
+  has_many :posts
+  has_and_belongs_to_many :locations   # for follows relationship
   
   def to_hash
     {
