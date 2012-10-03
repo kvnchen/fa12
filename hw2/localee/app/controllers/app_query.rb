@@ -29,7 +29,7 @@ class AppQuery
   # Output: None
   def get_following_locations(user_id)
     @following_locations = []
-    if user_id != nil and User.find_by_id(user_id) != nil    # checks for faulty input
+    if user_id != nil   # checks for faulty input
       locs = Location.where(Follow.where(:user_id => user_id).pluck(:location_id) )
       locs.each do |l|
         @following_locations.push(l.to_hash)
@@ -63,10 +63,10 @@ class AppQuery
     @location = {}
     @posts = []
 
-    if location_id != nil and Location.find_by_id(location_id) != nil    # checks for faulty input
-      loc_placeholder = Location.find_by_id(location_id)
+    if location_id != nil    # checks for faulty input
+      loc_placeholder = Location.find(location_id)
       @location = loc_placeholder.to_hash
-      #@location = Location.find_by_id(location_id).to_hash   #check to see if this actually works
+      #@location = Location.find(location_id).to_hash   #check to see if this actually works
     
       psts = Post.find_by_location_id(location_id).order("created_at DESC")    #this looks bad..   If fails, change :location_id to :loc_id
       psts.each do |p|
@@ -102,6 +102,19 @@ class AppQuery
   # Output: None
   def get_stream_for_user(user_id)
     @posts = []
+    if user_id != nil    # checks for faulty input
+      psts = Post.find_by_user_id(user_id).order("created_at DESC")    #this looks bad..   If fails, change :location_id to :loc_id
+      psts.each do |p|
+        h = {
+          :author_id => user_id,
+          :author => p.user.name,
+          :text => p.content,      
+          :created_at => p.created_at,
+          :location => p.location.to_hash
+        }
+        @posts.push(h)
+      end
+    end
   end
 
   # Purpose: Retrieve the locations within a GPS bounding box
@@ -124,6 +137,14 @@ class AppQuery
   # Output: None
   def get_nearby_locations(nelat, nelng, swlat, swlng, user_id)
     @locations = []
+    if user_id != nil and nelat != nil and nelng != nil and swlat != nil and swlng != nil    # checks for faulty input
+      locs = Location.where(:latitude => swlat..nelat, :longitude => swlng..nelng).limit(50)
+      locs.each do |l|
+        lh = l.to_hash
+        lh[:follows] = !(nil == Follow.where(:user_id => user_id, :location_id => l.id) )
+        @locations.push(lh)
+      end
+    end
   end
 
   # Purpose: Create a new location
@@ -139,7 +160,13 @@ class AppQuery
   # Assign: None
   # Output: true if the creation is successful, false otherwise
   def create_location(location_hash={})
-    false
+    #note: creation is false if missing any of the 3 requirements (they are enforced via validation)
+    if location_hash[:name] == nil or location_hash[:latitude] == nil or location_hash[:longitude] == nil
+      return false
+    else
+      l = Location.create!(location_hash)
+      return true
+    end
   end
 
   # Purpose: The current user follows a location
@@ -152,6 +179,11 @@ class AppQuery
   #       we may call it multiple times to test your schema/models.
   #       Your schema/models/code should prevent corruption of the database.
   def follow_location(user_id, location_id)
+    if user_id != nil and location_id != nil  #sanity check
+      if Follow.where(:user_id => user_id, :location_id => location_id) == nil
+        f = Follow.create!(:user_id => user_id, :location_id => location_id)
+      end
+    end
   end
 
   # Purpose: The current user unfollows a location
@@ -164,6 +196,11 @@ class AppQuery
   #       we may call it multiple times to test your schema/models.
   #       Your schema/models/code should prevent corruption of the database.
   def unfollow_location(user_id, location_id)
+    if user_id != nil and location_id != nil  #sanity check
+      if Follow.where(:user_id => user_id, :location_id => location_id) != nil   #test the return types of these queries
+        f = Follow.create!(:user_id => user_id, :location_id => location_id)
+      end
+    end
   end
 
   # Purpose: The current user creates a post to a given location
@@ -179,7 +216,14 @@ class AppQuery
   # Assign: None
   # Output: true if the creation is successful, false otherwise
   def create_post(user_id, post_hash={})
-    false
+    if user_id != nil and location_id != nil and post_hash != nil
+      if post_hash[:location_id] == nil or post_hash[:text] == nil
+        return false
+      else
+        p = Post.create!(post_hash)
+        return true
+      end
+    end
   end
 
   # Purpose: Create a new user
@@ -197,8 +241,13 @@ class AppQuery
   # Output: true if the creation is successful, false otherwise
   # NOTE: This method is already implemented, but you are allowed to modify it if needed.
   def create_user(user_hash={})
-    @user = User.new(user_hash)
-    @user.save
+    if user_hash[:name] == nil or user_hash[:email] == nil or user_hash[:password] == nil
+      return false
+    else
+      @user = User.new(user_hash)
+      @user.save
+      return true
+    end
   end
 
   # Purpose: Get all the posts
@@ -219,6 +268,16 @@ class AppQuery
   # Output: None
   def get_all_posts
     @posts = []
+    Post.all.each do |p|
+      h = {
+          :author_id => p.user_id,
+          :author => p.user.name,
+          :text => p.content,      
+          :created_at => p.created_at,
+          :location => p.location.to_hash
+        }
+      @posts.push(h)
+    end
   end
 
   # Purpose: Get all the users
@@ -233,6 +292,9 @@ class AppQuery
   # Output: None
   def get_all_users
     @users = []
+    User.all.each do |u|
+      @users.push(u.to_hash)
+    end
   end
 
   # Purpose: Get all the locations
@@ -248,6 +310,9 @@ class AppQuery
   # Output: None
   def get_all_locations
     @locations = []
+    Location.all.each do |l|
+      @users.push(l.to_hash)
+    end
   end
 
   # Retrieve the top 5 users who created the most posts.
