@@ -29,6 +29,8 @@ class AppQuery
   # Output: None
   def get_following_locations(user_id)
     @following_locations = []
+    user = User.find_by_id(user_id)
+
   end
 
   # Purpose: Show the information and all posts for a given location
