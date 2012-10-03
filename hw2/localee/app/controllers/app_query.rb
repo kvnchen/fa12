@@ -68,7 +68,7 @@ class AppQuery
       @location = loc_placeholder.to_hash
       #@location = Location.find(location_id).to_hash   #check to see if this actually works
     
-      psts = Post.find_by_location_id(location_id).order("created_at DESC")    #this looks bad..   If fails, change :location_id to :loc_id
+      psts = Post.where(:location_id => location_id).order("created_at DESC")    #this looks bad..   If fails, change :location_id to :loc_id
       psts.each do |p|
         h = {
           :author_id => p.user_id,     #test this, but should work, also technically unnecessary
@@ -216,11 +216,11 @@ class AppQuery
   # Assign: None
   # Output: true if the creation is successful, false otherwise
   def create_post(user_id, post_hash={})
-    if user_id != nil and User.find(user_id) != nil and location_id != nil and post_hash != nil
+    if user_id != nil and User.find(user_id) != nil and post_hash != nil
       if post_hash[:location_id] == nil or post_hash[:text] == nil
         return false
       else
-        p = Post.create!(post_hash)
+        p = Post.create!({:user_id => user_id, :location_id => post_hash[:location_id], :content => post_hash[:text]} )
         return true
       end
     end
