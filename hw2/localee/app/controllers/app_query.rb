@@ -29,8 +29,12 @@ class AppQuery
   # Output: None
   def get_following_locations(user_id)
     @following_locations = []
-    user = User.find_by_id(user_id)
-
+    if user_id != nil and User.find_by_id(user_id) != nil    # checks for faulty input
+      locs = Location.where(Follow.where(:user_id => user_id).pluck(:location_id) )
+      locs.each do |l|
+        @following_locations.push(l.to_hash)
+      end
+    end
   end
 
   # Purpose: Show the information and all posts for a given location
@@ -58,6 +62,25 @@ class AppQuery
   def get_posts_for_location(location_id)
     @location = {}
     @posts = []
+
+    if location_id != nil and Location.find_by_id(location_id) != nil    # checks for faulty input
+      loc_placeholder = Location.find_by_id(location_id)
+      @location = loc_placeholder.to_hash
+      #@location = Location.find_by_id(location_id).to_hash   #check to see if this actually works
+    
+      psts = Post.find_by_location_id(location_id).order("created_at DESC")    #this looks bad..   If fails, change :location_id to :loc_id
+      psts.each do |p|
+        h = {
+          :author_id => p.user_id,     #test this, but should work, also technically unnecessary
+          :author => p.user.name,
+          :text => p.content,      
+          :created_at => p.created_at,
+          :location => @location
+        }
+        @posts.push(h)
+ 
+      end
+    end
   end
 
   # Purpose: Show the current user's stream of posts from all the locations the user follows
