@@ -103,7 +103,8 @@ class AppQuery
   def get_stream_for_user(user_id)
     @posts = []
     if user_id != nil and User.find(user_id) != nil # checks for faulty input
-      psts = Post.find_by_user_id(user_id).order("created_at DESC")    #this looks bad..   If fails, change :location_id to :loc_id
+      follows = Follow.where(:user_id => user_id).pluck(:location_id)  #array of location ids that user follows
+      psts = Post.where(:user_id => user_id, :location_id => follows).order("created_at DESC")    #this looks bad..   If fails, change :location_id to :loc_id
       psts.each do |p|
         h = {
           :author_id => user_id,
@@ -223,7 +224,9 @@ class AppQuery
         p = Post.create!({:user_id => user_id, :location_id => post_hash[:location_id], :content => post_hash[:text]} )
         return true
       end
-    end
+    else
+      return false
+    end 
   end
 
   # Purpose: Create a new user
@@ -311,7 +314,7 @@ class AppQuery
   def get_all_locations
     @locations = []
     Location.all.each do |l|
-      @users.push(l.to_hash)
+      @locations.push(l.to_hash)
     end
   end
 
